@@ -6,6 +6,22 @@ import requests
 score = 0
 
 
+def createNewSession(username):
+    return requests.post(
+        url="http://127.0.0.1:5000/gamedata",
+        data=json.dumps(
+            {
+                "username": username,
+            }
+        ),
+        headers={"Content-Type": "application/json"},
+    )
+
+
+def updateCurrentSession(id, data):
+    return requests.put(url=f"http://127.0.0.1:5000/gamedata/{id}", data=data)
+
+
 def getQuestions():
     questions = {}
 
@@ -24,28 +40,10 @@ def getQuestions():
     return questions
 
 
-def postDataOnServer(username, score, questionsData):
-    questions = list(questionsData.keys())
-    answers = list(questionsData.values())
-    payload = json.dumps({
-        "gameId": random.randint(1, 10000),
-        "username1": username,
-        "username2": "None",
-        "score1": score,
-        "score2": score,
-        "text": questions,
-        "answers": answers
-    })
-    headers = {'Content-Type': 'application/json'}
-    
-    return requests.post(url="http://127.0.0.1:5000/postgamedata", data=payload, headers=headers)
-
-
-def startGame():
-    username = input("Введите ваше имя: ")
+def startGameLoop(gameId):
     questions = getQuestions()
-    questionsForPostData = questions.copy()
-    
+    questionsForGameData = questions.copy()
+
     while len(questions) != 0:
         global score
         currentQuestion = random.choice(list(questions))
@@ -68,9 +66,52 @@ def startGame():
         del questions[currentQuestion]
 
     print(f"ИГРА ОКОНЧЕНА. ВАШ СЧЁТ {score}")
-    postDataOnServer(username=username, score=score, questionsData=questionsForPostData)
+
+    updateCurrentSession(
+        gameId,
+        data=json.dumps(
+            {
+                "score": score,
+                "text": list(questionsForGameData.keys()),
+                "answer": list(questionsForGameData.values()),
+            }
+        ),
+    )
+
+
+def searchingForGame():
+    response = requests.get(url="http://127.0.0.1:5000/sessions").json()
+    username = input("Введите ваше имя: ")
+
+    print(f"ИГР ДОСТУПНО: {len(response['AVAILABLE SESSIONS'])}")
+
+    if len(response["AVAILABLE SESSIONS"]) == 0:
+        print("ДОСТУПНЫХ ИГР НЕТ, ГОТОВЫ НАЧАТЬ НОВУЮ?")
+        while True:
+            userChoice = input("y/n\n")
+            try:
+                if userChoice == "y":
+                    createNewSession(username)
+                    response = requests.get(url="http://127.0.0.1:5000/sessions").json()
+                    gameId = response["AVAILABLE SESSIONS"][0]
+                    startGameLoop(gameId)
+                    break
+                elif userChoice == "n":
+                    print("УВИДИМСЯ В СЛЕДУЮЩИЙ РАЗ!")
+                    break
+            except ValueError:
+                print("Значение неверно")
+    # else:
+    #     print("ПРИСОЕДИНЯЕМСЯ К НЕЗАКОНЧЕННОЙ ИГРЕ")
+    # startGameLoop()
+
+    # gameId = response['AVAILABLE SESSIONS'][0]
+    # data = {"username": username,
+    #         "gameId": gameId,
+    #         ""
+    #         }
+    # updateCurrentSession(gameId, data)
 
 
 if __name__ == "__main__":
-    startGame()
-    
+    searchingForGame()
