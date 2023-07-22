@@ -7,15 +7,7 @@ score = 0
 
 
 def createNewSession(username):
-    return requests.post(
-        url="http://127.0.0.1:5000/gamedata",
-        data=json.dumps(
-            {
-                "username": username,
-            }
-        ),
-        headers={"Content-Type": "application/json"},
-    )
+    return requests.post(url="http://127.0.0.1:5000/gamedata")
 
 
 def updateCurrentSession(id, data):
@@ -40,7 +32,7 @@ def getQuestions():
     return questions
 
 
-def startGameLoop(gameId):
+def startGameLoop(gameId, username):
     questions = getQuestions()
     questionsForGameData = questions.copy()
 
@@ -71,6 +63,7 @@ def startGameLoop(gameId):
         gameId,
         data=json.dumps(
             {
+                "username": username,
                 "score": score,
                 "text": list(questionsForGameData.keys()),
                 "answer": list(questionsForGameData.values()),
@@ -89,28 +82,23 @@ def searchingForGame():
         print("ДОСТУПНЫХ ИГР НЕТ, ГОТОВЫ НАЧАТЬ НОВУЮ?")
         while True:
             userChoice = input("y/n\n")
-            try:
-                if userChoice == "y":
-                    createNewSession(username)
-                    response = requests.get(url="http://127.0.0.1:5000/sessions").json()
-                    gameId = response["AVAILABLE SESSIONS"][0]
-                    startGameLoop(gameId)
-                    break
-                elif userChoice == "n":
-                    print("УВИДИМСЯ В СЛЕДУЮЩИЙ РАЗ!")
-                    break
-            except ValueError:
+            if userChoice == "y":
+                createNewSession(username)
+                response = requests.get(url="http://127.0.0.1:5000/sessions").json()
+                gameId = response["AVAILABLE SESSIONS"][0]
+                startGameLoop(gameId, username)
+                break
+            elif userChoice == "n":
+                print("УВИДИМСЯ В СЛЕДУЮЩИЙ РАЗ!")
+                break
+            
+            else:
                 print("Значение неверно")
-    # else:
-    #     print("ПРИСОЕДИНЯЕМСЯ К НЕЗАКОНЧЕННОЙ ИГРЕ")
-    # startGameLoop()
+    
+    else:
+        gameId = response["AVAILABLE SESSIONS"][0]
+        startGameLoop(gameId, username)
 
-    # gameId = response['AVAILABLE SESSIONS'][0]
-    # data = {"username": username,
-    #         "gameId": gameId,
-    #         ""
-    #         }
-    # updateCurrentSession(gameId, data)
 
 
 if __name__ == "__main__":

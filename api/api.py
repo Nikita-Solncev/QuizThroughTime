@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_restful import Api, Resource
 import json
 import uuid
+import pprint
 
 
 app = Flask(__name__)
@@ -34,17 +35,27 @@ class GameData(Resource):
 
         game = gameData.pop(gameData.index(game))
 
-        # game["players"][0]["username"] = requestData["username"]
-        game["players"][0]["current_game_state"]["is_game_over"] = True
-        game["players"][0]["current_game_state"]["score"] = requestData["score"]
+        game["players"].append(dict(username = requestData["username"], current_game_state=dict(is_game_over=True, score=requestData["score"]), questions=[]))
+
+        player = None
+        player = 0 if len(game["players"]) == 1 else 1
+
         for i in range(len(requestData['text'])):
-            game["questions"].append(dict(
+            game["players"][player]["questions"].append(dict(
                 text = requestData['text'][i],
                 options = list(*requestData["answer"][i][0].values()),
                 answer = list(requestData["answer"][i][1].values()),
             ))
 
+
+        if len(game["players"]) == 2:
+            game["is_game_over"] = True
+
+   
+
+
         gameData.append(game)
+
 
         with open("gamesdata.json", "w", encoding="utf-8") as file:
             json.dump(gameData, file, ensure_ascii=False, indent=4)
@@ -56,16 +67,12 @@ class CreateGame(Resource):
         with open("gamesdata.json", "r", encoding="utf-8") as file:
             data = json.load(file)
 
-        postData = json.loads(request.data)
         gamedata = {}
         gamedata["gameId"] = uuid.uuid4().hex
-        gamedata["players"] = [
-            dict(
-                username=postData['username'], current_game_state=dict(is_game_over=False, score=0)
-            )
-        ]
+
         gamedata["is_game_over"] = False
-        gamedata["questions"] = []
+
+        gamedata["players"] = []
 
         data.append(gamedata)
 
