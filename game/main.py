@@ -3,18 +3,24 @@ import random
 import requests
 
 
-score = 0
-
-
 def createNewSession(username):
+    """
+    Отправляет запрос на создание новой игровой сессии.
+    """
     return requests.post(url="http://127.0.0.1:5000/gamedata")
 
 
 def updateCurrentSession(id, data):
+    """
+    Отправляет запрос на обновление существующей сессии.
+    """
     return requests.put(url=f"http://127.0.0.1:5000/gamedata/{id}", data=data)
 
 
 def getQuestions():
+    """
+    Получает вопросы из json файла. Возвращает словарь с пятью случайными вопросами.
+    """
     questions = {}
 
     with open("questions.json", "r", encoding="utf-8") as json_file:
@@ -27,17 +33,20 @@ def getQuestions():
             dict(answer=question["answer"]),
         ]
 
-        data["questions"].remove(question)
+        data["questions"].remove(question) #удаляю вопрос, чтобы он не повторился ещё раз
 
     return questions
 
 
 def startGameLoop(gameId, username):
+    """
+    Цикл игры. По окончанию игры отправляется запрос на обновление данных сессии.
+    """
     questions = getQuestions()
-    questionsForGameData = questions.copy()
+    questionsForGameData = questions.copy() #Копия словаря questions, т.к. во время игры он изменяется, а после игры он нам понадобится, чтобы отправить данные в сессию. 
+    score = 0
 
     while len(questions) != 0:
-        global score
         currentQuestion = random.choice(list(questions))
         correctAnswer = questions[currentQuestion][1]["answer"]
         optionalAnswers = questions[currentQuestion][0]["options"]
@@ -55,7 +64,7 @@ def startGameLoop(gameId, username):
             print(f"ОТВЕТ НЕВЕРНЫЙ! ВАШ ТЕКУЩИЙ СЧЁТ: {score}")
             print(f"Правильный ответ: {correctAnswer}")
 
-        del questions[currentQuestion]
+        del questions[currentQuestion] #Удаляем вопрос из словаря questions, т.к. цикл работает до тех пор, пока в словаре есть вопросы
 
     print(f"ИГРА ОКОНЧЕНА. ВАШ СЧЁТ {score}")
 
@@ -73,6 +82,9 @@ def startGameLoop(gameId, username):
 
 
 def searchingForGame():
+    """
+    Ищет игру. Если есть незаконченная сессия, то заканчиваем её.
+    """
     response = requests.get(url="http://127.0.0.1:5000/sessions").json()
     username = input("Введите ваше имя: ")
 

@@ -10,6 +10,9 @@ api = Api()
 
 class GameData(Resource):
     def get(self, id):
+        """
+        Получаем игровую сессию по её id
+        """
         with open("gamesdata.json", "r", encoding="utf-8") as file:
             gameData = json.load(file)
         for game in gameData:
@@ -19,11 +22,18 @@ class GameData(Resource):
     
     
     def put(self, id):
+        """
+        Обновляем данные в игровой сессии
+        """
         requestData = json.loads(request.data)
 
+
+        #т.к. используем json(что слегка не удобно), выкачиваем все его содержимое, чтобы изменить его
         with open("gamesdata.json", "r", encoding="utf-8") as file:
             gameData = json.load(file)
 
+
+        #ищем игровую сессию с нужным id. Если не находим, то возвращаем ошибку
         game = None
         for i in gameData:
             if i["gameId"] == id:
@@ -32,7 +42,7 @@ class GameData(Resource):
         else:
             return jsonify({"Error": "There is no game with this id"})
 
-        game = gameData.pop(gameData.index(game))
+        game = gameData.pop(gameData.index(game)) #сессию, данные которой нужно изменить удаляем и получаем её содержимое
 
         game["players"].append(dict(username = requestData["username"], current_game_state=dict(is_game_over=True, score=requestData["score"]), questions=[]))
 
@@ -50,10 +60,8 @@ class GameData(Resource):
         if len(game["players"]) == 2:
             game["is_game_over"] = True
 
-   
 
-
-        gameData.append(game)
+        gameData.append(game) #Вставляем сессию обратно
 
 
         with open("gamesdata.json", "w", encoding="utf-8") as file:
@@ -63,6 +71,9 @@ class GameData(Resource):
 
 class CreateGame(Resource):
     def post(self):
+        """
+        Создаем пустую сессию 
+        """
         with open("gamesdata.json", "r", encoding="utf-8") as file:
             data = json.load(file)
 
@@ -82,6 +93,9 @@ class CreateGame(Resource):
 
 class Sessions(Resource):
     def get(self):
+        """
+        Получаем кол-во незаконченных сессий
+        """
         with open("gamesdata.json", "r", encoding="utf-8") as file:
             data = json.load(file)
         
