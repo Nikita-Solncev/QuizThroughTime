@@ -3,7 +3,7 @@ import random
 import requests
 
 
-def createNewSession(username):
+def createNewSession():
     """
     Отправляет запрос на создание новой игровой сессии.
     """
@@ -95,7 +95,7 @@ def searchingForGame():
         while True:
             userChoice = input("y/n\n")
             if userChoice == "y":
-                createNewSession(username)
+                createNewSession()
                 response = requests.get(url="http://127.0.0.1:5000/sessions").json()
                 gameId = response["AVAILABLE SESSIONS"][0]
                 startGameLoop(gameId, username)
@@ -110,7 +110,6 @@ def searchingForGame():
     else:
         gameId = response["AVAILABLE SESSIONS"][0]
         startGameLoop(gameId, username)
-
 
 
 if __name__ == "__main__":

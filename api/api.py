@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_restful import Api, Resource
 import json
 import uuid
+from pprint import pprint
 
 
 app = Flask(__name__)
@@ -9,17 +10,20 @@ api = Api()
 
 
 class GameData(Resource):
-    def get(self, id):
+    def get(self, gameId):
         """
         Получаем игровую сессию по её id
         """
-        with open("gamesdata.json", "r", encoding="utf-8") as file:
-            gameData = json.load(file)
-        for game in gameData:
-            if game["gameId"] == id:
-                return game
-        return jsonify({"Error": "There is no game with this id"})
-    
+        is_ok, error_text, status = validate_get_request(gameId)
+        if is_ok:
+            with open("gamesdata.json", "r", encoding="utf-8") as file:
+                gameData = json.load(file)
+            for game in gameData:
+                if game["gameId"] == gameId:
+                    return game
+            return jsonify({"Error": "There is no game with this id"})
+        return jsonify(error_text, status)
+
     
     def put(self, id):
         """
@@ -32,19 +36,17 @@ class GameData(Resource):
         with open("gamesdata.json", "r", encoding="utf-8") as file:
             gameData = json.load(file)
 
+        
+        game = next((x for x in gameData if x["gameId"] == id), None)              
+        game = gameData.pop(gameData.index(game))
 
-        #ищем игровую сессию с нужным id. Если не находим, то возвращаем ошибку
-        game = None
-        for i in gameData:
-            if i["gameId"] == id:
-                game = i
-                break
-        else:
-            return jsonify({"Error": "There is no game with this id"})
-
-        game = gameData.pop(gameData.index(game)) #сессию, данные которой нужно изменить удаляем и получаем её содержимое
-
-        game["players"].append(dict(username = requestData["username"], current_game_state=dict(is_game_over=True, score=requestData["score"]), questions=[]))
+    
+        player = {
+            "username": requestData["username"],
+            "current_game_state": {"is_game_over": True, "score": requestData["score"]},
+            "questions": []
+        }
+        game["players"].append(player)
 
         player = None
         player = 0 if len(game["players"]) == 1 else 1
@@ -68,7 +70,6 @@ class GameData(Resource):
             json.dump(gameData, file, ensure_ascii=False, indent=4)
         
          
-
 class CreateGame(Resource):
     def post(self):
         """
@@ -77,12 +78,12 @@ class CreateGame(Resource):
         with open("gamesdata.json", "r", encoding="utf-8") as file:
             data = json.load(file)
 
-        gamedata = {}
-        gamedata["gameId"] = uuid.uuid4().hex
+        gamedata = {
+            "gameId": uuid.uuid4().hex,
+            "is_game_over": False,
+            "players": []
+        }
 
-        gamedata["is_game_over"] = False
-
-        gamedata["players"] = []
 
         data.append(gamedata)
 
@@ -99,11 +100,8 @@ class Sessions(Resource):
         with open("gamesdata.json", "r", encoding="utf-8") as file:
             data = json.load(file)
         
-        availableSessions = []
-        for game in data:
-            if game["is_game_over"]:
-                continue
-            availableSessions.append(game["gameId"])
+        availableSessions = [game["gameId"] for game in data if not game["is_game_over"]]
+        
     
         return jsonify({"AVAILABLE SESSIONS": availableSessions})
     
@@ -115,4 +113,4 @@ api.init_app(app)
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=5000)
