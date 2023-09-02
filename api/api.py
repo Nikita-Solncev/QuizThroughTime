@@ -14,15 +14,13 @@ class GameData(Resource):
         """
         Получаем игровую сессию по её id
         """
-        is_ok, error_text, status = validate_get_request(gameId)
-        if is_ok:
-            with open("gamesdata.json", "r", encoding="utf-8") as file:
-                gameData = json.load(file)
-            for game in gameData:
-                if game["gameId"] == gameId:
-                    return game
-            return jsonify({"Error": "There is no game with this id"})
-        return jsonify(error_text, status)
+        with open("gamesdata.json", "r", encoding="utf-8") as file:
+            gameData = json.load(file)
+        for game in gameData:
+            if game["gameId"] == gameId:
+                return game
+        return jsonify({"Error": "There is no game with this id"})
+    
 
     
     def put(self, id):
